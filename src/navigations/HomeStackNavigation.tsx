@@ -8,7 +8,7 @@ const Stack = createNativeStackNavigator();
 const HomeStackNavigation = (): JSX.Element => (
   <Stack.Navigator>
     <Stack.Screen
-      name="Home"
+      name="HomeStack"
       component={Home}
       options={{ headerShown: false }}
     />
