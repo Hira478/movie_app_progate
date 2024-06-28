@@ -49,7 +49,6 @@ const MovieList = ({ title, path, coverType }: MovieListProps): JSX.Element => {
         <Text style={styles.title}>{title}</Text>
       </View>
 
-      {/* FlatList for displaying movies */}
       <FlatList
         style={{
           ...styles.movieList,

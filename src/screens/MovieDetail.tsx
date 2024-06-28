@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    width: "48%", // Adjust width as needed for spacing
+    width: "48%",
     marginBottom: 8,
   },
   detailLabel: {
