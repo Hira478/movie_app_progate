@@ -6,7 +6,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  TouchableOpacity,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { FontAwesome } from "@expo/vector-icons";
 import { API_ACCESS_TOKEN } from "@env";
 import type { Movie } from "../../types/app";
 import MovieList from "../components/movies/MovieList";
@@ -15,10 +18,12 @@ const MovieDetail = ({ route }: any): JSX.Element => {
   const { id } = route.params;
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
 
   useEffect(() => {
     fetchMovieDetail();
-  }, []);
+    checkIsFavorite(id);
+  }, [id]);
 
   const fetchMovieDetail = async (): Promise<void> => {
     const url = `https://api.themoviedb.org/3/movie/${id}`;
@@ -38,6 +43,72 @@ const MovieDetail = ({ route }: any): JSX.Element => {
     } catch (error) {
       console.error("Error fetching movie details:", error);
       setLoading(false);
+    }
+  };
+
+  const checkIsFavorite = async (movieId: number): Promise<void> => {
+    try {
+      const favoriteMoviesData = await AsyncStorage.getItem("@FavoriteList");
+      if (favoriteMoviesData !== null) {
+        const favoriteMovies: Movie[] = JSON.parse(favoriteMoviesData);
+        const isFav = favoriteMovies.some((movie) => movie.id === movieId);
+        setIsFavorite(isFav);
+      }
+    } catch (error) {
+      console.log("Error checking favorite status:", error);
+    }
+  };
+
+  const addFavorite = async (movie: Movie): Promise<void> => {
+    try {
+      const initialData: string | null = await AsyncStorage.getItem(
+        "@FavoriteList"
+      );
+      let favMovieList: Movie[] = [];
+
+      if (initialData !== null) {
+        favMovieList = [...JSON.parse(initialData), movie];
+      } else {
+        favMovieList = [movie];
+      }
+
+      await AsyncStorage.setItem("@FavoriteList", JSON.stringify(favMovieList));
+      setIsFavorite(true);
+    } catch (error) {
+      console.log("Error adding favorite movie:", error);
+    }
+  };
+
+  const removeFavorite = async (movieId: number): Promise<void> => {
+    try {
+      const initialData: string | null = await AsyncStorage.getItem(
+        "@FavoriteList"
+      );
+
+      if (initialData !== null) {
+        const favMovieList: Movie[] = JSON.parse(initialData);
+        const updatedFavMovieList = favMovieList.filter(
+          (movie) => movie.id !== movieId
+        );
+
+        await AsyncStorage.setItem(
+          "@FavoriteList",
+          JSON.stringify(updatedFavMovieList)
+        );
+        setIsFavorite(false);
+      }
+    } catch (error) {
+      console.log("Error removing favorite movie:", error);
+    }
+  };
+
+  const toggleFavorite = (): void => {
+    if (movie) {
+      if (isFavorite) {
+        removeFavorite(movie.id);
+      } else {
+        addFavorite(movie);
+      }
     }
   };
 
@@ -61,11 +132,22 @@ const MovieDetail = ({ route }: any): JSX.Element => {
               }}
               resizeMode="cover"
             />
+            <TouchableOpacity
+              style={styles.favoriteButton}
+              onPress={toggleFavorite}
+            >
+              <FontAwesome
+                name={isFavorite ? "heart" : "heart-o"}
+                size={24}
+                color={isFavorite ? "red" : "white"}
+              />
+            </TouchableOpacity>
             <View style={styles.thumbnailOverlay}>
               <Text style={styles.movieTitle}>{movie.title}</Text>
               <Text style={styles.rating}>{movie.vote_average.toFixed(1)}</Text>
             </View>
           </View>
+          <Text style={styles.sectionTitle}>Synopsis</Text>
           <Text style={styles.overview}>{movie.overview}</Text>
           <View style={styles.detailContainer}>
             <View style={styles.detailRow}>
@@ -76,8 +158,6 @@ const MovieDetail = ({ route }: any): JSX.Element => {
               <Text style={styles.detailLabel}>Popularity</Text>
               <Text style={styles.detailValue}>{movie.popularity}</Text>
             </View>
-          </View>
-          <View style={styles.detailContainer}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Release Date</Text>
               <Text style={styles.detailValue}>
@@ -118,6 +198,12 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 8,
   },
+  favoriteButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 1,
+  },
   thumbnailOverlay: {
     position: "absolute",
     bottom: 0,
@@ -125,20 +211,25 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     padding: 10,
-    flexDirection: "column", // Changed to column
-    justifyContent: "flex-start", // Adjusted alignment
-    alignItems: "flex-start", // Adjusted alignment
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   movieTitle: {
     color: "white",
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 8, // Added margin for spacing
   },
   rating: {
     color: "yellow",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 16,
+    marginBottom: 8,
   },
   overview: {
     fontSize: 16,
@@ -147,17 +238,18 @@ const styles = StyleSheet.create({
   detailContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
     marginBottom: 16,
   },
   detailRow: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    flex: 1,
-    marginRight: 16, // Added margin for spacing between columns
+    flexDirection: "row",
+    alignItems: "center",
+    width: "48%", // Adjust width as needed for spacing
+    marginBottom: 8,
   },
   detailLabel: {
     fontWeight: "bold",
-    marginBottom: 4,
+    marginRight: 4,
   },
   detailValue: {
     marginBottom: 8,

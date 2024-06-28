@@ -2,9 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList } from "react-native";
 import type { MovieListProps, Movie } from "../../../types/app";
 import { API_ACCESS_TOKEN } from "@env";
-import MovieItem from "./MovieItem"; // Added for MovieItem component
+import MovieItem from "./MovieItem";
 
-// Added to define CSS for different cover image sizes
 const coverImageSize = {
   backdrop: {
     width: 280,
